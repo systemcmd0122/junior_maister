@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ジュニアマイスター 得点計算ツール</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F8FA;
+    --surface: #FFFFFF;
+    --surface2: #F0F2F5;
+    --border: #E2E5EA;
+    --border2: #C8CDD6;
+    --text: #1A1D23;
+    --text2: #5A6070;
+    --text3: #8E96A4;
+    --accent: #1A6B4A;
+    --accent-bg: #E6F4EE;
+    --accent-mid: #2E9E6E;
+    --gold: #B8860B;
+    --gold-bg: #FFF8E6;
+    --gold-border: #E8C547;
+    --silver: #5A6070;
+    --silver-bg: #F0F2F5;
+    --silver-border: #B0B8C4;
+    --bronze: #8B4513;
+    --bronze-bg: #FDF0E6;
+    --bronze-border: #D4936A;
+    --warn-bg: #FFF8E6;
+    --warn-border: #E8C547;
+    --warn-text: #7A5A00;
+    --danger-bg: #FEF0F0;
+    --danger-text: #8B2020;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 1px 4px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  }
+
+  body {
+    font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ===== HEADER ===== */
+  .site-header {
+    background: var(--accent);
+    color: #fff;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  }
+  .site-header-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .site-header .logo-mark {
+    width: 36px;
+    height: 36px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .site-header .site-title {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .site-header .site-sub {
+    font-size: 11px;
+    opacity: 0.75;
+    margin-top: 1px;
+  }
+
+  /* ===== LAYOUT ===== */
+  .page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+  }
+
+  /* ===== SCORE PANEL ===== */
+  .score-panel {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+    padding: 20px 24px 16px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .score-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent-mid), #4CC997);
+  }
+  .score-panel-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .score-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .score-box {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .score-box .s-label {
+    font-size: 11px;
+    color: var(--text3);
+    margin-bottom: 4px;
+  }
+  .score-box .s-value {
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+  .score-box .s-unit {
+    font-size: 13px;
+    color: var(--text2);
+    margin-left: 2px;
+  }
+  .rank-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    border: 2px solid var(--border);
+    background: var(--surface2);
+    transition: all 0.25s;
+  }
+  .rank-display.bronze { background: var(--bronze-bg); border-color: var(--bronze-border); }
+  .rank-display.silver { background: var(--silver-bg); border-color: var(--silver-border); }
+  .rank-display.gold   { background: var(--gold-bg);   border-color: var(--gold-border); }
+  .rank-icon {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text3);
+    transition: color 0.25s;
+  }
+  .rank-icon svg { width: 100%; height: 100%; display: block; }
+  .rank-display.bronze .rank-icon { color: var(--bronze); }
+  .rank-display.silver .rank-icon { color: var(--silver); }
+  .rank-display.gold   .rank-icon { color: var(--gold); }
+  .rank-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text2);
+    transition: color 0.25s;
+  }
+  .rank-display.bronze .rank-name { color: var(--bronze); }
+  .rank-display.silver .rank-name { color: var(--silver); }
+  .rank-display.gold   .rank-name { color: var(--gold); }
+  .rank-desc {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 1px;
+  }
+  .progress-bar-wrap {
+    margin-top: 14px;
+  }
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text3);
+    margin-bottom: 5px;
+  }
+  .progress-bar {
+    height: 8px;
+    background: var(--surface2);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--accent-mid);
+    transition: width 0.35s ease;
+    min-width: 0;
+  }
+  .progress-markers {
+    display: flex;
+    position: relative;
+    height: 14px;
+    margin-top: 3px;
+  }
+  .progress-marker {
+    position: absolute;
+    font-size: 10px;
+    color: var(--text3);
+    transform: translateX(-50%);
+  }
+
+  /* ===== SELECTED LIST ===== */
+  .selected-section {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+    overflow: hidden;
+    display: none;
+  }
+  .selected-section.visible { display: block; }
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-head-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .count-badge {
+    font-size: 11px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .reset-btn {
+    font-size: 12px;
+    color: var(--text3);
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    padding: 4px 12px 4px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .reset-btn svg { width: 11px; height: 11px; flex-shrink: 0; }
+  .reset-btn:hover { background: var(--danger-bg); color: var(--danger-text); border-color: #E88; }
+  .selected-items {
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .sel-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+  }
+  .sel-row .sel-name { flex: 1; color: var(--text); }
+  .sel-row .sel-edu { font-size: 10px; color: var(--warn-text); background: var(--warn-bg); border: 1px solid var(--warn-border); padding: 1px 6px; border-radius: 10px; white-space: nowrap; }
+  .sel-row .sel-pts { font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .sel-row .del-btn { cursor: pointer; color: var(--text3); background: none; border: none; width: 22px; height: 22px; padding: 0; border-radius: 5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: color 0.12s, background 0.12s; }
+  .sel-row .del-btn svg { width: 13px; height: 13px; }
+  .sel-row .del-btn:hover { color: var(--danger-text); background: rgba(139,32,32,0.08); }
+  .warn-box {
+    margin: 0 14px 10px;
+    padding: 9px 13px;
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--warn-text);
+    display: none;
+    align-items: flex-start;
+    gap: 7px;
+  }
+  .warn-box.visible { display: flex; }
+  .warn-box svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ===== CATALOG ===== */
+  .catalog-section {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .catalog-head {
+    padding: 16px 18px 0;
+  }
+  .catalog-head h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .search-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .search-wrap {
+    flex: 1;
+    position: relative;
+  }
+  .search-wrap input {
+    width: 100%;
+    padding: 9px 12px 9px 36px;
+    font-size: 13px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+    font-family: inherit;
+  }
+  .search-wrap input:focus { border-color: var(--accent-mid); background: #fff; }
+  .search-wrap .search-icon {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 15px;
+    height: 15px;
+    color: var(--text3);
+    pointer-events: none;
+    display: flex;
+  }
+  .search-wrap .search-icon svg { width: 100%; height: 100%; }
+  .tabs-wrap {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    font-size: 12px;
+    padding: 5px 13px;
+    border-radius: 20px;
+    border: 1px solid var(--border2);
+    cursor: pointer;
+    color: var(--text2);
+    background: var(--surface2);
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .tab:hover { border-color: var(--accent-mid); color: var(--accent); background: var(--accent-bg); }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+
+  .item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 8px;
+    padding: 14px;
+  }
+  .item {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 11px 13px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    background: var(--surface);
+    user-select: none;
+  }
+  .item:hover {
+    border-color: var(--accent-mid);
+    background: var(--accent-bg);
+  }
+  .item.selected {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    box-shadow: 0 0 0 2px rgba(30,158,110,0.15);
+  }
+  .item-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .item-check {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1.5px solid var(--border2);
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    background: #fff;
+  }
+  .item.selected .item-check {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .item-check::after {
+    content: '';
+    width: 10px;
+    height: 6px;
+    border-left: 2px solid transparent;
+    border-bottom: 2px solid transparent;
+    transform: rotate(-45deg) translate(1px, -1px);
+    transition: border-color 0.15s;
+  }
+  .item.selected .item-check::after {
+    border-left-color: #fff;
+    border-bottom-color: #fff;
+  }
+  .item-name {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.4;
+    flex: 1;
+  }
+  .pts-pill {
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--surface2);
+    color: var(--text2);
+    border: 1px solid var(--border);
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .item.selected .pts-pill {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .item-sub {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 4px;
+    margin-left: 26px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .edu-tag {
+    font-size: 10px;
+    color: var(--warn-text);
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    padding: 0px 5px;
+    border-radius: 8px;
+  }
+  .empty-grid {
+    padding: 32px;
+    text-align: center;
+    color: var(--text3);
+    font-size: 13px;
+  }
+
+  /* ===== FOOTER ===== */
+  .site-footer {
+    text-align: center;
+    padding: 32px 16px;
+    font-size: 11px;
+    color: var(--text3);
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 600px) {
+    .score-grid { grid-template-columns: 1fr 1fr; }
+    .score-box:last-child { display: none; }
+    .item-grid { grid-template-columns: 1fr; }
+    .site-header-inner { padding: 12px 14px; }
+    .page { padding: 16px 10px 50px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="site-header-inner">
+    <div class="logo-mark">JM</div>
+    <div>
+      <div class="site-title">ジュニアマイスター 得点計算ツール</div>
+      <div class="site-sub">取得した資格・検定を選んで合計点と称号を確認</div>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+
+  <!-- スコアパネル -->
+  <div class="score-panel">
+    <div class="score-panel-title">現在のスコア</div>
+    <div class="score-grid">
+      <div class="score-box">
+        <div class="s-label">合計得点</div>
+        <div class="s-value" id="total-score">0<span class="s-unit">点</span></div>
+      </div>
+      <div class="score-box">
+        <div class="s-label">技術系得点</div>
+        <div class="s-value" id="tech-score">0<span class="s-unit">点</span></div>
+      </div>
+      <div class="score-box">
+        <div class="s-label">選択数</div>
+        <div class="s-value" id="sel-count-score">0<span class="s-unit">件</span></div>
+      </div>
+    </div>
+    <div class="rank-display" id="rank-display">
+      <div class="rank-icon" id="rank-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg></div>
+      <div>
+        <div class="rank-name" id="rank-name">まだ申請できません</div>
+        <div class="rank-desc" id="rank-desc">教養系を除く技術系得点が20点以上になると申請可能</div>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-labels">
+        <span>0点</span><span>ブロンズ 20点</span><span>シルバー 30点</span><span>ゴールド 45点</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 選択済みリスト -->
+  <div class="selected-section" id="selected-section">
+    <div class="section-head">
+      <div class="section-head-title">
+        選択済みの資格・検定
+        <span class="count-badge" id="sel-count-badge">0件</span>
+      </div>
+      <button class="reset-btn" onclick="resetAll()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>すべてリセット</button>
+    </div>
+    <div class="selected-items" id="selected-list"></div>
+    <div class="warn-box" id="warn-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.7 2.5 20h19L12 3.7z"/><line x1="12" y1="9.5" x2="12" y2="14"/><circle cx="12" cy="17" r="1" fill="currentColor" stroke="none"/></svg>
+      <span>申請には教養系を除く技術系合計が<strong>20点以上</strong>必要です。現在の技術系得点：<strong id="warn-tech">0</strong>点</span>
+    </div>
+  </div>
+
+  <!-- カタログ -->
+  <div class="catalog-section">
+    <div class="catalog-head">
+      <h2>資格・検定・コンテストを選択</h2>
+      <div class="search-row">
+        <div class="search-wrap">
+          <span class="search-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          <input type="text" id="search" placeholder="資格名・団体名で検索..." oninput="filterItems()">
+        </div>
+      </div>
+      <div class="tabs-wrap" id="cat-tabs"></div>
+    </div>
+    <div class="item-grid" id="item-grid"></div>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  本ツールは令和8年度区分表をもとに作成しています。申請時は必ず公式実施要項・区分表を確認してください。<br>
+  公益社団法人 全国工業高等学校長協会 &nbsp;|&nbsp; <a href="https://zenkoukyo.or.jp/index_jm/" target="_blank" style="color:inherit">公式サイト</a>
+</footer>
+
+<script>
+const ICON_NEUTRAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg>';
+const ICON_MEDAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 2.5 5 10"/><path d="M15.5 2.5 19 10"/><circle cx="12" cy="14.5" r="6.5"/><path d="M9.3 14.5 11 16.2l3.7-3.9"/></svg>';
+const ICON_CLOSE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>';
+
+const DATA = [
+  // === 全工協主催 ===
+  { id:101, name:"計算技術検定 1級", cat:"全工協", subcat:"技術", pts:20, note:"(公社)全工協" },
+  { id:102, name:"計算技術検定 2級", cat:"全工協", subcat:"技術", pts:12, note:"(公社)全工協" },
+  { id:117, name:"情報技術検定 特別表彰", cat:"全工協", subcat:"技術", pts:30, note:"(公社)全工協" },
+  { id:103, name:"情報技術検定 1級", cat:"全工協", subcat:"技術", pts:20, note:"(公社)全工協" },
+  { id:104, name:"情報技術検定 2級", cat:"全工協", subcat:"技術", pts:12, note:"(公社)全工協" },
+  { id:105, name:"基礎製図検定", cat:"全工協", subcat:"技術", pts:7, note:"(公社)全工協" },
+  { id:106, name:"機械製図検定 特別賞", cat:"全工協", subcat:"技術", pts:20, note:"(公社)全工協" },
+  { id:107, name:"パソコン利用技術検定 1級", cat:"全工協", subcat:"技術", pts:20, note:"(公社)全工協" },
+  { id:108, name:"パソコン利用技術検定 2級", cat:"全工協", subcat:"技術", pts:12, note:"(公社)全工協" },
+  { id:109, name:"リスニング英語検定 1級", cat:"全工協", subcat:"教養", pts:20, note:"(公社)全工協" },
+  { id:110, name:"リスニング英語検定 2級", cat:"全工協", subcat:"教養", pts:12, note:"(公社)全工協" },
+  { id:111, name:"グラフィックデザイン検定 1級", cat:"全工協", subcat:"技術", pts:20, note:"(公社)全工協" },
+  { id:112, name:"グラフィックデザイン検定 準1級", cat:"全工協", subcat:"技術", pts:12, note:"(公社)全工協" },
+  { id:113, name:"グラフィックデザイン検定 2級", cat:"全工協", subcat:"技術", pts:7, note:"(公社)全工協" },
+  { id:114, name:"高等学校工業基礎学力テスト 95点以上", cat:"全工協", subcat:"技術", pts:20, note:"(公社)全工協" },
+  { id:115, name:"高等学校工業基礎学力テスト 90点以上", cat:"全工協", subcat:"技術", pts:12, note:"(公社)全工協" },
+  { id:116, name:"高等学校工業基礎学力テスト 85点以上", cat:"全工協", subcat:"技術", pts:7, note:"(公社)全工協" },
+  // === 教養系 ===
+  { id:200, name:"外国語検定 B2以上 (CEFR対応)", cat:"教養系", subcat:"教養", pts:20, note:"関係外国語検定実施団体" },
+  { id:201, name:"外国語検定 B1 (CEFR対応)", cat:"教養系", subcat:"教養", pts:12, note:"関係外国語検定実施団体" },
+  { id:202, name:"外国語検定 A2 (CEFR対応)", cat:"教養系", subcat:"教養", pts:7, note:"関係外国語検定実施団体" },
+  { id:203, name:"日本漢字能力検定 1級", cat:"教養系", subcat:"教養", pts:20, note:"(公財)日本漢字能力検定協会" },
+  { id:204, name:"日本漢字能力検定 準1級", cat:"教養系", subcat:"教養", pts:12, note:"(公財)日本漢字能力検定協会" },
+  { id:205, name:"日本漢字能力検定 2級", cat:"教養系", subcat:"教養", pts:7, note:"(公財)日本漢字能力検定協会" },
+  { id:206, name:"実用数学技能検定 1級", cat:"教養系", subcat:"教養", pts:20, note:"(公財)日本数学検定協会" },
+  { id:207, name:"実用数学技能検定 準1級", cat:"教養系", subcat:"教養", pts:12, note:"(公財)日本数学検定協会" },
+  { id:208, name:"実用数学技能検定 2級", cat:"教養系", subcat:"教養", pts:7, note:"(公財)日本数学検定協会" },
+  { id:209, name:"日本語検定 1級", cat:"教養系", subcat:"教養", pts:20, note:"(特非)日本語検定委員会" },
+  { id:210, name:"日本語検定 準1級", cat:"教養系", subcat:"教養", pts:12, note:"(特非)日本語検定委員会" },
+  { id:211, name:"日本語検定 2級", cat:"教養系", subcat:"教養", pts:7, note:"(特非)日本語検定委員会" },
+  // === 電気系 ===
+  { id:300, name:"電気主任技術者 第3種以上", cat:"電気系", subcat:"技術", pts:30, note:"経済産業省" },
+  { id:301, name:"電気工事士 1種（技能合格）", cat:"電気系", subcat:"技術", pts:20, note:"経済産業省" },
+  { id:302, name:"電気工事士 2種", cat:"電気系", subcat:"技術", pts:12, note:"経済産業省" },
+  { id:303, name:"電気工事施工管理技術検定 2級", cat:"電気系", subcat:"技術", pts:12, note:"国土交通省" },
+  { id:304, name:"電気工事施工管理技術検定 技士補", cat:"電気系", subcat:"技術", pts:7, note:"国土交通省" },
+  // === 情報系 ===
+  { id:320, name:"情報処理技術者試験 応用情報技術者", cat:"情報系", subcat:"技術", pts:20, note:"(独法)情報処理推進機構" },
+  { id:321, name:"情報処理技術者試験 基本情報技術者", cat:"情報系", subcat:"技術", pts:12, note:"(独法)情報処理推進機構" },
+  { id:322, name:"情報処理技術者試験 ITパスポート", cat:"情報系", subcat:"技術", pts:7, note:"(独法)情報処理推進機構" },
+  { id:323, name:"情報セキュリティマネジメント試験", cat:"情報系", subcat:"技術", pts:12, note:"(独法)情報処理推進機構" },
+  { id:324, name:"高度情報処理技術者試験（各種）", cat:"情報系", subcat:"技術", pts:30, note:"(独法)情報処理推進機構" },
+  { id:325, name:"ウェブデザイン技能検定 2級", cat:"情報系", subcat:"技術", pts:12, note:"厚生労働省" },
+  { id:326, name:"ウェブデザイン技能検定 3級", cat:"情報系", subcat:"技術", pts:7, note:"厚生労働省" },
+  { id:327, name:"シスコ技術者認定 CCNP", cat:"情報系", subcat:"技術", pts:20, note:"シスコ" },
+  { id:328, name:"シスコ技術者認定 CCNA", cat:"情報系", subcat:"技術", pts:12, note:"シスコ" },
+  { id:329, name:"情報検定(J検) 情報活用試験 1級", cat:"情報系", subcat:"技術", pts:12, note:"(一財)職業教育・キャリア教育財団" },
+  { id:330, name:"情報検定(J検) 情報活用試験 2級", cat:"情報系", subcat:"技術", pts:7, note:"(一財)職業教育・キャリア教育財団" },
+  { id:331, name:"ICTプロフィシエンシー検定(P検) 1級", cat:"情報系", subcat:"技術", pts:20, note:"ICTプロフィシエンシー検定協会" },
+  { id:332, name:"ICTプロフィシエンシー検定(P検) 2級", cat:"情報系", subcat:"技術", pts:12, note:"ICTプロフィシエンシー検定協会" },
+  { id:333, name:"ICTプロフィシエンシー検定(P検) 準2級", cat:"情報系", subcat:"技術", pts:7, note:"ICTプロフィシエンシー検定協会" },
+  { id:334, name:"Microsoft Office Specialist Word 上位", cat:"情報系", subcat:"技術", pts:7, note:"(株)オデッセイ コミュニケーションズ" },
+  { id:335, name:"Microsoft Office Specialist Excel 上位", cat:"情報系", subcat:"技術", pts:7, note:"(株)オデッセイ コミュニケーションズ" },
+  { id:336, name:"プログラミング能力検定 レベル5", cat:"情報系", subcat:"技術", pts:12, note:"プログラミング能力検定協会" },
+  { id:337, name:"2次元CAD利用技術者 1級", cat:"情報系", subcat:"技術", pts:12, note:"(一社)コンピュータ教育振興協会" },
+  { id:338, name:"3次元CAD利用技術者 1級", cat:"情報系", subcat:"技術", pts:20, note:"(一社)コンピュータ教育振興協会" },
+  // === 通信・無線 ===
+  { id:400, name:"工事担任者 デジタル第一級", cat:"通信・無線", subcat:"技術", pts:20, note:"総務省" },
+  { id:401, name:"工事担任者 デジタル第二級", cat:"通信・無線", subcat:"技術", pts:12, note:"総務省" },
+  { id:402, name:"工事担任者 アナログ第一級", cat:"通信・無線", subcat:"技術", pts:20, note:"総務省" },
+  { id:403, name:"陸上特殊無線技士 第一級", cat:"通信・無線", subcat:"技術", pts:20, note:"総務省" },
+  { id:404, name:"陸上特殊無線技士 第二級", cat:"通信・無線", subcat:"技術", pts:12, note:"総務省" },
+  { id:405, name:"アマチュア無線技士 第一級", cat:"通信・無線", subcat:"技術", pts:20, note:"総務省" },
+  { id:406, name:"アマチュア無線技士 第二級", cat:"通信・無線", subcat:"技術", pts:12, note:"総務省" },
+  { id:407, name:"陸上無線技術士 第一級", cat:"通信・無線", subcat:"技術", pts:30, note:"総務省" },
+  { id:408, name:"陸上無線技術士 第二級", cat:"通信・無線", subcat:"技術", pts:20, note:"総務省" },
+  // === 機械系 ===
+  { id:500, name:"ボイラー技士 2級", cat:"機械系", subcat:"技術", pts:12, note:"厚生労働省" },
+  { id:501, name:"ボイラー技士 免許取得（1級）", cat:"機械系", subcat:"技術", pts:20, note:"厚生労働省" },
+  { id:502, name:"自動車整備士 3級", cat:"機械系", subcat:"技術", pts:12, note:"国土交通省" },
+  { id:503, name:"技能士 2級", cat:"機械系", subcat:"技術", pts:12, note:"厚生労働省（中央職業能力開発協会）" },
+  { id:504, name:"技能士 3級", cat:"機械系", subcat:"技術", pts:7, note:"厚生労働省（中央職業能力開発協会）" },
+  { id:505, name:"JIS溶接技能者評価試験 専門級", cat:"機械系", subcat:"技術", pts:12, note:"(一社)日本溶接協会" },
+  { id:506, name:"JIS溶接技能者評価試験 基本級", cat:"機械系", subcat:"技術", pts:7, note:"(一社)日本溶接協会" },
+  { id:507, name:"機械保全技能検定 2級", cat:"機械系", subcat:"技術", pts:12, note:"厚生労働省" },
+  { id:508, name:"機械設計技術者試験 3級", cat:"機械系", subcat:"技術", pts:12, note:"(一社)日本機械設計工業会" },
+  { id:509, name:"非破壊試験技術者 レベル2", cat:"機械系", subcat:"技術", pts:20, note:"(一財)日本非破壊検査協会" },
+  { id:510, name:"三次元CAD認定技術者 CSWP", cat:"機械系", subcat:"技術", pts:12, note:"ソリッドワークス・ジャパン(株)" },
+  { id:511, name:"自主保全士 2級", cat:"機械系", subcat:"技術", pts:7, note:"(公社)日本プラントメンテナンス協会" },
+  // === 建築・土木 ===
+  { id:600, name:"土木施工管理技術検定 2級", cat:"建築・土木", subcat:"技術", pts:12, note:"国土交通省" },
+  { id:601, name:"土木施工管理技術検定 技士補", cat:"建築・土木", subcat:"技術", pts:7, note:"国土交通省" },
+  { id:602, name:"建築施工管理技術検定 2級", cat:"建築・土木", subcat:"技術", pts:12, note:"国土交通省" },
+  { id:603, name:"建築施工管理技術検定 技士補", cat:"建築・土木", subcat:"技術", pts:7, note:"国土交通省" },
+  { id:604, name:"測量士", cat:"建築・土木", subcat:"技術", pts:20, note:"国土交通省（国土地理院）" },
+  { id:605, name:"測量士補", cat:"建築・土木", subcat:"技術", pts:12, note:"国土交通省（国土地理院）" },
+  { id:606, name:"建築CAD検定 准1級", cat:"建築・土木", subcat:"技術", pts:20, note:"(一社)全国建築CAD連盟" },
+  { id:607, name:"建築CAD検定 2級", cat:"建築・土木", subcat:"技術", pts:12, note:"(一社)全国建築CAD連盟" },
+  { id:608, name:"建築CAD検定 3級", cat:"建築・土木", subcat:"技術", pts:7, note:"(一社)全国建築CAD連盟" },
+  { id:609, name:"インテリアコーディネーター", cat:"建築・土木", subcat:"技術", pts:12, note:"(公社)インテリア産業協会" },
+  { id:610, name:"福祉住環境コーディネーター 2級", cat:"建築・土木", subcat:"技術", pts:12, note:"東京商工会議所" },
+  { id:611, name:"福祉住環境コーディネーター 3級", cat:"建築・土木", subcat:"技術", pts:7, note:"東京商工会議所" },
+  { id:612, name:"施工管理技士補（管工事）", cat:"建築・土木", subcat:"技術", pts:7, note:"国土交通省" },
+  // === デザイン系 ===
+  { id:700, name:"色彩検定 1級", cat:"デザイン系", subcat:"技術", pts:20, note:"(公社)色彩検定協会" },
+  { id:701, name:"色彩検定 2級", cat:"デザイン系", subcat:"技術", pts:12, note:"(公社)色彩検定協会" },
+  { id:702, name:"カラーコーディネーター アドバンス", cat:"デザイン系", subcat:"技術", pts:12, note:"東京商工会議所" },
+  { id:703, name:"カラーコーディネーター スタンダード", cat:"デザイン系", subcat:"技術", pts:7, note:"東京商工会議所" },
+  { id:704, name:"色彩士検定 1級", cat:"デザイン系", subcat:"技術", pts:20, note:"(特非)全国美術デザイン専門学校教育振興会" },
+  { id:705, name:"色彩士検定 2級", cat:"デザイン系", subcat:"技術", pts:12, note:"(特非)全国美術デザイン専門学校教育振興会" },
+  { id:706, name:"CGエンジニア検定 エキスパート", cat:"デザイン系", subcat:"技術", pts:12, note:"(公財)CG-ARTS協会" },
+  { id:707, name:"Webデザイナー検定 エキスパート", cat:"デザイン系", subcat:"技術", pts:12, note:"(公財)CG-ARTS協会" },
+  // === 消防・危険物 ===
+  { id:800, name:"危険物取扱者 甲種", cat:"消防・危険物", subcat:"技術", pts:20, note:"総務省" },
+  { id:801, name:"危険物取扱者 乙種4類", cat:"消防・危険物", subcat:"技術", pts:7, note:"総務省" },
+  { id:802, name:"危険物取扱者 乙種1類", cat:"消防・危険物", subcat:"技術", pts:7, note:"総務省" },
+  { id:803, name:"危険物取扱者 乙種2類", cat:"消防・危険物", subcat:"技術", pts:7, note:"総務省" },
+  { id:804, name:"危険物取扱者 乙種3類", cat:"消防・危険物", subcat:"技術", pts:7, note:"総務省" },
+  { id:805, name:"危険物取扱者 乙種5類", cat:"消防・危険物", subcat:"技術", pts:7, note:"総務省" },
+  { id:806, name:"危険物取扱者 乙種6類", cat:"消防・危険物", subcat:"技術", pts:7, note:"総務省" },
+  { id:807, name:"消防設備士 甲種1類", cat:"消防・危険物", subcat:"技術", pts:12, note:"総務省" },
+  { id:808, name:"消防設備士 乙種1類", cat:"消防・危険物", subcat:"技術", pts:7, note:"総務省" },
+  { id:809, name:"消防設備士 甲種4類", cat:"消防・危険物", subcat:"技術", pts:12, note:"総務省" },
+  { id:810, name:"消防設備士 乙種4類", cat:"消防・危険物", subcat:"技術", pts:7, note:"総務省" },
+  { id:811, name:"消防設備士 甲種2類", cat:"消防・危険物", subcat:"技術", pts:12, note:"総務省" },
+  { id:812, name:"消防設備士 甲種3類", cat:"消防・危険物", subcat:"技術", pts:12, note:"総務省" },
+  // === 環境・化学 ===
+  { id:900, name:"高圧ガス製造保安責任者 甲種化学・機械", cat:"環境・化学", subcat:"技術", pts:20, note:"経済産業省" },
+  { id:901, name:"高圧ガス製造保安責任者 乙種化学・機械", cat:"環境・化学", subcat:"技術", pts:12, note:"経済産業省" },
+  { id:902, name:"高圧ガス製造保安責任者 冷凍機械2種", cat:"環境・化学", subcat:"技術", pts:12, note:"経済産業省" },
+  { id:903, name:"高圧ガス製造保安責任者 冷凍機械3種", cat:"環境・化学", subcat:"技術", pts:7, note:"経済産業省" },
+  { id:904, name:"公害防止管理者 大気1種・水質1種", cat:"環境・化学", subcat:"技術", pts:12, note:"(一社)産業環境管理協会" },
+  { id:905, name:"公害防止管理者 騒音・振動・粉塵", cat:"環境・化学", subcat:"技術", pts:12, note:"(一社)産業環境管理協会" },
+  { id:906, name:"毒物劇物取扱責任者 試験合格", cat:"環境・化学", subcat:"技術", pts:12, note:"各都道府県" },
+  { id:907, name:"eco検定（環境社会検定）", cat:"環境・化学", subcat:"技術", pts:7, note:"東京商工会議所" },
+  { id:908, name:"エネルギー管理士", cat:"環境・化学", subcat:"技術", pts:20, note:"(一財)省エネルギーセンター" },
+  { id:909, name:"エックス線作業主任者", cat:"環境・化学", subcat:"技術", pts:12, note:"厚生労働省" },
+  { id:910, name:"火薬類取扱保安責任者 甲種", cat:"環境・化学", subcat:"技術", pts:20, note:"経済産業省" },
+  // === その他資格 ===
+  { id:1000, name:"品質管理検定(QC検定) 2級", cat:"その他", subcat:"技術", pts:12, note:"(一財)日本規格協会" },
+  { id:1001, name:"品質管理検定(QC検定) 3級", cat:"その他", subcat:"技術", pts:7, note:"(一財)日本規格協会" },
+  { id:1002, name:"宅地建物取引士", cat:"その他", subcat:"技術", pts:20, note:"国土交通省" },
+  { id:1003, name:"知的財産管理技能検定 2級", cat:"その他", subcat:"技術", pts:12, note:"厚生労働省" },
+  { id:1004, name:"知的財産管理技能検定 3級", cat:"その他", subcat:"技術", pts:7, note:"厚生労働省" },
+  { id:1005, name:"潜水士", cat:"その他", subcat:"技術", pts:12, note:"(公財)安全衛生技術試験協会" },
+  { id:1006, name:"無人航空機操縦者技能証明 一等", cat:"その他", subcat:"技術", pts:20, note:"国土交通省" },
+  { id:1007, name:"無人航空機操縦者技能証明 二等", cat:"その他", subcat:"技術", pts:12, note:"国土交通省" },
+  { id:1008, name:"半導体技術者検定 2級3科目", cat:"その他", subcat:"技術", pts:12, note:"(一社)パワーデバイス・イネーブリング協会" },
+  { id:1009, name:"半導体技術者検定 3級", cat:"その他", subcat:"技術", pts:7, note:"(一社)パワーデバイス・イネーブリング協会" },
+  // === コンテスト(区分2) ===
+  { id:2000, name:"高校生ものづくりコンテスト 1位（大臣賞）", cat:"コンテスト", subcat:"技術", pts:30, note:"(公社)全工協" },
+  { id:2001, name:"高校生ものづくりコンテスト 2〜3位", cat:"コンテスト", subcat:"技術", pts:20, note:"(公社)全工協" },
+  { id:2002, name:"高校生ものづくりコンテスト ブロック優勝", cat:"コンテスト", subcat:"技術", pts:12, note:"(公社)全工協" },
+  { id:2003, name:"高校生ものづくりコンテスト 県優勝", cat:"コンテスト", subcat:"技術", pts:7, note:"(公社)全工協" },
+  { id:2004, name:"全日本ロボット相撲大会 全国優勝（大臣賞）", cat:"コンテスト", subcat:"技術", pts:30, note:"(公社)全工協" },
+  { id:2005, name:"全日本ロボット相撲大会 全国入賞", cat:"コンテスト", subcat:"技術", pts:20, note:"(公社)全工協" },
+  { id:2006, name:"ジャパンマイコンカーラリー Advanced 全国優勝", cat:"コンテスト", subcat:"技術", pts:30, note:"(公社)全工協" },
+  { id:2007, name:"ジャパンマイコンカーラリー Advanced 全国入賞", cat:"コンテスト", subcat:"技術", pts:20, note:"(公社)全工協" },
+  { id:2008, name:"ジャパンマイコンカーラリー Basic 全国優勝", cat:"コンテスト", subcat:"技術", pts:20, note:"(公社)全工協" },
+  { id:2009, name:"技能五輪全国大会 金・銀・銅賞（大臣賞）", cat:"コンテスト", subcat:"技術", pts:30, note:"中央職業能力開発協会" },
+  { id:2010, name:"技能五輪全国大会 敢闘賞", cat:"コンテスト", subcat:"技術", pts:12, note:"中央職業能力開発協会" },
+  { id:2011, name:"技能五輪全国大会 都道府県代表", cat:"コンテスト", subcat:"技術", pts:7, note:"中央職業能力開発協会" },
+  { id:2012, name:"全国高等学校ロボット競技大会 優勝（大臣賞）", cat:"コンテスト", subcat:"技術", pts:30, note:"文部科学省・関係団体" },
+  { id:2013, name:"全国高等学校ロボット競技大会 入賞", cat:"コンテスト", subcat:"技術", pts:12, note:"文部科学省・関係団体" },
+  { id:2014, name:"全国高等学校ロボット競技大会 地区優勝", cat:"コンテスト", subcat:"技術", pts:7, note:"文部科学省・関係団体" },
+  { id:2015, name:"全国高校生プログラミングコンテスト 優勝（大臣賞）", cat:"コンテスト", subcat:"技術", pts:30, note:"全国情報技術教育研究会" },
+  { id:2016, name:"全国高校生プログラミングコンテスト 入賞", cat:"コンテスト", subcat:"技術", pts:12, note:"全国情報技術教育研究会" },
+  { id:2017, name:"全国高等学校パソコンコンクール グランプリ", cat:"コンテスト", subcat:"技術", pts:20, note:"パソコンコンクール実行委員会" },
+  { id:2018, name:"全国高等学校パソコンコンクール 入賞", cat:"コンテスト", subcat:"技術", pts:12, note:"パソコンコンクール実行委員会" },
+  // === コンクール(区分3) ===
+  { id:3000, name:"高校生ものづくりコンテスト ポスターコンクール 最優秀", cat:"コンクール", subcat:"技術", pts:20, note:"(公社)全工協" },
+  { id:3001, name:"高校生ものづくりコンテスト ポスターコンクール 優秀", cat:"コンクール", subcat:"技術", pts:12, note:"(公社)全工協" },
+  { id:3002, name:"全国製図コンクール 特別賞", cat:"コンクール", subcat:"技術", pts:20, note:"(公社)全工協" },
+  { id:3003, name:"全国製図コンクール 最優秀", cat:"コンクール", subcat:"技術", pts:12, note:"(公社)全工協" },
+  { id:3004, name:"高校生技術・アイディアコンテスト全国大会 最優秀", cat:"コンクール", subcat:"技術", pts:20, note:"(公社)全工協" },
+  { id:3005, name:"日本学生科学賞 総理大臣賞", cat:"コンクール", subcat:"技術", pts:30, note:"読売新聞" },
+  { id:3006, name:"日本学生科学賞 大臣賞", cat:"コンクール", subcat:"技術", pts:20, note:"読売新聞" },
+  { id:3007, name:"日本学生科学賞 入賞・1等", cat:"コンクール", subcat:"技術", pts:12, note:"読売新聞" },
+  { id:3008, name:"全日本学生児童発明くふう展 恩賜記念賞", cat:"コンクール", subcat:"技術", pts:30, note:"(公社)発明協会" },
+  { id:3009, name:"パテントコンテスト 特許出願", cat:"コンクール", subcat:"技術", pts:12, note:"(独法)工業所有権情報・研修館" },
+  { id:3010, name:"工高生デザインコンクール 最優秀", cat:"コンクール", subcat:"技術", pts:20, note:"(一社)日本建築協会" },
+  { id:3011, name:"全国高校生建築製図コンクール 金賞", cat:"コンクール", subcat:"技術", pts:20, note:"東日本建築教育研究会" },
+  { id:3012, name:"全国高校生建築製図コンクール 銀賞", cat:"コンクール", subcat:"技術", pts:12, note:"東日本建築教育研究会" },
+  { id:3013, name:"明るい選挙啓発ポスター 大臣賞", cat:"コンクール", subcat:"技術", pts:30, note:"(公財)明るい選挙推進協会" },
+  { id:3014, name:"明るい選挙啓発ポスター 全国最優秀", cat:"コンクール", subcat:"技術", pts:20, note:"(公財)明るい選挙推進協会" },
+];
+
+const CATS = ["すべて","全工協","電気系","情報系","機械系","建築・土木","デザイン系","消防・危険物","通信・無線","環境・化学","コンテスト","コンクール","教養系","その他"];
+
+let selected = new Set();
+let currentCat = "すべて";
+let searchVal = "";
+
+function init() {
+  const tabs = document.getElementById("cat-tabs");
+  CATS.forEach(c => {
+    const btn = document.createElement("button");
+    btn.className = "tab" + (c === currentCat ? " active" : "");
+    btn.textContent = c;
+    btn.onclick = () => {
+      currentCat = c;
+      document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.textContent === c));
+      render();
+    };
+    tabs.appendChild(btn);
+  });
+  render();
+  updateScores();
+}
+
+function getFiltered() {
+  return DATA.filter(d => {
+    const matchCat = currentCat === "すべて" || d.cat === currentCat;
+    const q = searchVal.toLowerCase();
+    const matchSearch = !q || d.name.toLowerCase().includes(q) || d.note.toLowerCase().includes(q) || d.cat.toLowerCase().includes(q);
+    return matchCat && matchSearch;
+  });
+}
+
+function render() {
+  const grid = document.getElementById("item-grid");
+  const items = getFiltered();
+  if (!items.length) {
+    grid.innerHTML = '<div class="empty-grid">該当する資格・検定が見つかりません</div>';
+    return;
+  }
+  grid.innerHTML = items.map(d => {
+    const sel = selected.has(d.id);
+    const eduTag = d.subcat === "教養" ? '<span class="edu-tag">教養系</span>' : "";
+    return `<div class="item${sel ? " selected" : ""}" onclick="toggle(${d.id})" tabindex="0" role="checkbox" aria-checked="${sel}">
+      <div class="item-top">
+        <span class="item-check" aria-hidden="true"></span>
+        <span class="item-name">${d.name}</span>
+        <span class="pts-pill">${d.pts}点</span>
+      </div>
+      <div class="item-sub">${d.note} ${eduTag}</div>
+    </div>`;
+  }).join("");
+}
+
+function toggle(id) {
+  if (selected.has(id)) selected.delete(id);
+  else selected.add(id);
+  updateScores();
+  render();
+  renderSelected();
+}
+
+function resetAll() {
+  selected.clear();
+  updateScores();
+  render();
+  renderSelected();
+}
+
+function filterItems() {
+  searchVal = document.getElementById("search").value.trim();
+  render();
+}
+
+function updateScores() {
+  const selItems = DATA.filter(d => selected.has(d.id));
+  const total = selItems.reduce((s, d) => s + d.pts, 0);
+  const tech  = selItems.filter(d => d.subcat !== "教養").reduce((s, d) => s + d.pts, 0);
+
+  document.getElementById("total-score").innerHTML = `${total}<span class="s-unit">点</span>`;
+  document.getElementById("tech-score").innerHTML  = `${tech}<span class="s-unit">点</span>`;
+  document.getElementById("sel-count-score").innerHTML = `${selected.size}<span class="s-unit">件</span>`;
+
+  const rd   = document.getElementById("rank-display");
+  const icon = document.getElementById("rank-icon");
+  const name = document.getElementById("rank-name");
+  const desc = document.getElementById("rank-desc");
+  const fill = document.getElementById("progress-fill");
+
+  rd.className = "rank-display";
+  if (tech < 20) {
+    icon.innerHTML = ICON_NEUTRAL;
+    name.textContent = "まだ申請できません";
+    desc.textContent = `教養系を除く技術系得点が20点以上になると申請可能（現在${tech}点）`;
+  } else if (total >= 45) {
+    rd.classList.add("gold");
+    icon.innerHTML = ICON_MEDAL;
+    name.textContent = "ジュニアマイスター ゴールド";
+    desc.textContent = "45点以上達成！最高称号です";
+  } else if (total >= 30) {
+    rd.classList.add("silver");
+    icon.innerHTML = ICON_MEDAL;
+    name.textContent = "ジュニアマイスター シルバー";
+    desc.textContent = `ゴールドまであと${45 - total}点`;
+  } else if (total >= 20) {
+    rd.classList.add("bronze");
+    icon.innerHTML = ICON_MEDAL;
+    name.textContent = "ジュニアマイスター ブロンズ";
+    desc.textContent = `シルバーまであと${30 - total}点`;
+  } else {
+    icon.innerHTML = ICON_NEUTRAL;
+    name.textContent = "まだ申請できません";
+    desc.textContent = `合計20点以上になると申請可能（技術系${tech}点 / 合計${total}点）`;
+  }
+
+  const pct = Math.min(100, Math.round(total / 60 * 100));
+  fill.style.width = pct + "%";
+}
+
+function renderSelected() {
+  const selItems = DATA.filter(d => selected.has(d.id));
+  const sec  = document.getElementById("selected-section");
+  const list = document.getElementById("selected-list");
+  const badge = document.getElementById("sel-count-badge");
+  const warn  = document.getElementById("warn-box");
+  const warnTech = document.getElementById("warn-tech");
+
+  sec.classList.toggle("visible", selItems.length > 0);
+  badge.textContent = selItems.length + "件";
+
+  const tech = selItems.filter(d => d.subcat !== "教養").reduce((s, d) => s + d.pts, 0);
+  warn.classList.toggle("visible", selItems.length > 0 && tech < 20);
+  warnTech.textContent = tech;
+
+  list.innerHTML = selItems.map(d => {
+    const eduTag = d.subcat === "教養" ? '<span class="sel-edu">教養系</span>' : "";
+    return `<div class="sel-row">
+      <span class="sel-name">${d.name}</span>
+      ${eduTag}
+      <span class="sel-pts">+${d.pts}点</span>
+      <button class="del-btn" onclick="toggle(${d.id})" title="${d.name}を削除" aria-label="${d.name}を削除">${ICON_CLOSE}</button>
+    </div>`;
+  }).join("");
+}
+
+document.getElementById("search").addEventListener("keydown", e => {
+  if (e.key === "Escape") { e.target.value = ""; searchVal = ""; render(); }
+});
+
+init();
+</script>
+</body>
+</html>
